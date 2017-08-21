@@ -271,10 +271,9 @@ Inductive Tree (A : Type) :=
 ELPI's API describes types with two information~:\begin{description}
     \item[kind] It's the type of the type, or more precisely a description of
         the parameters of the type. See figure \ref{kinds} for a formal
-        definition of kinds. Notice how a parameter can be a term, this is
-        for example used when encoding the length of a list inside its type.
-        This specific case will \emph{not} be considered in this work. Parameters
-        themselves can be one of the following~:\begin{description}
+        definition of kinds. Notice how a parameter can be a term. This specific
+        case will \emph{not} be considered in this work. Parameters themselves
+        can be one of the following~:\begin{description}
             \item[uniform] A uniform parameter is one which remain unchanged
                 in the arguments of the constructors. For example, a list parameter
                 is uniform since to build a list of $A$, you need a list of $A$.
