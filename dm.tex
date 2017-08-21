@@ -182,7 +182,7 @@ Coq terms.
 
 \subsection{ELPI : Embedded Lambda Prolog Interpreter}
 
-Let's have a more detailed to this last option. $\lambda$-prolog brings us
+Let's have a more detailed look to this last option. $\lambda$-prolog brings us
 backtracking (which won't really be used in the rest of the paper, but can be
 used to easily implement types unification\cite{ELPItype}) and higher order unification
 for free. The latter is particularly useful when extracting information from
@@ -230,12 +230,13 @@ functions are opaque containers).
 
 \section{Deriving decidable equality instances}\label{deceq}
 
-All the code is available at \url{https://github.com/LPCIC/coq-elpi}. The file
-where the generation is done is \texttt{eq.elpi}
-and the corresponding Coq file with the examples is \texttt{theories/test\_eq.v}.
+All the code is available at \url{https://github.com/LPCIC/coq-elpi}. The version
+at the end of the internship is tagged with \texttt{Stage-L3-Luc}. The file
+where the generation is done is \texttt{eq.elpi} and the corresponding Coq file
+with the examples is \texttt{theories/test\_eq.v}.
 
-This implementation was done without any formalisation on the types manipulated
-nor forethought, resulting in a working but limited implementation.
+This implementation was done without any formalisation on the types manipulated,
+resulting in a working but limited implementation.
 
 \begin{figure}
     \begin{center}$\begin{array}{rcl}
