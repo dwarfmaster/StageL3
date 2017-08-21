@@ -172,14 +172,14 @@ implicit derivation of an induction principle when a datatype is defined, but
 it is quite weak (the generated principle is useless as soon as nested types
 appear).
 
-We could go the same way and implement other derivations directly in Coq, but
-that would mean that adding new instances is complicated, and adding a
-non-standard derivation mechanism would mean maintaining a patch over Coq. Using
-the plugin interface seems better in that case, but it still requires good
-knowledge of Coq internals, and is prone to be broken by Coq updates. Thankfully
-another solution exists : a \lprog\cite{HiOrProg} interpreter has
-been embedded into Coq, ELPI\cite{ELPI} and comes with a API to manipulate
-Coq terms.
+We could go the same way and implement other derivations in OCaml as new Coq
+functionality, but that would mean that adding new instances is complicated,
+and adding a non-standard derivation mechanism would mean maintaining a patch
+over Coq. Using the plugin interface seems better in that case, but it still
+requires good knowledge of Coq internals, and is prone to be broken by Coq
+updates. Thankfully another solution exists : a \lprog\cite{HiOrProg}
+interpreter has been embedded into Coq, ELPI\cite{ELPI} and comes with a API to
+manipulate Coq terms.
 
 \subsection{ELPI : Embedded Lambda Prolog Interpreter}
 
