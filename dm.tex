@@ -197,21 +197,17 @@ and a specific abstraction for types. See figure \ref{LambdaCoq} for a more
 detailed definition.
 
 \begin{figure}
-    \begin{center}\begin{tabular}{cc}
-        $\begin{array}{rcll}
-            \Lambda & := & \Lambda\Lambda & \text{Application} \\
-                    & |  & \lambda (\V : \Lambda). \Lambda & \text{Abstraction} \\
-                    & |  & \forall (\V : \Lambda). \Lambda & \text{Product} \\
-                    & |  & \text{fix } (\V : \Lambda)\ \Lambda & \text{Fixpoint} \\
-                    & |  & \text{match } \V\ [\Lambda] & \text{Match} \\
-                    & |  & \C & \\
-        \end{array}$ & $\begin{array}{rcll}
-            \C & := & \V & \text{Var} \\
-               & |  & \text{const \emph{Str}} & \text{Constant} \\
-               & |  & \text{indc \emph{Str}}  & \text{Constructor} \\
-               & |  & \text{indt \emph{Str}}  & \text{Type} \\
-        \end{array}$ \\
-    \end{tabular}\end{center}
+    \[\begin{array}{rcll}
+        \Lambda & := & \Lambda\Lambda & \text{Application} \\
+                & |  & \lambda (\Lambda \rightarrow \Lambda) & \text{Abstraction} \\
+                & |  & \forall (\Lambda \rightarrow \Lambda) & \text{Product} \\
+                & |  & \text{fix } (\Lambda \rightarrow \Lambda) & \text{Fixpoint} \\
+                & |  & \text{match } \Lambda\ [\Lambda] & \text{Match} \\
+                & |  & \text{const \emph{Str}} & \text{Constant} \\
+                & |  & \text{indc \emph{Str}}  & \text{Constructor} \\
+                & |  & \text{indt \emph{Str}}  & \text{Type} \\
+    \end{array}\]
+    \begin{center}$\rightarrow$ designates a \lprog function and $[]$ a \lprog list.\end{center}
     \caption{Coq $\lambda$-calculus as seen from ELPI's API}
     \label{LambdaCoq}
 \end{figure}
@@ -221,8 +217,10 @@ what's used is an \emph{higher order abstract syntax} (HOAS). What that means is
 that there is no \texttt{Var} constructor : when abstracting over a term, what
 is given is a function from a term to a term, and thus the $\beta$-reduction
 of the application of this term is simply the application of the function to
-its argument. This makes it very easy to compute on this syntax, since all the
-work is done by the language. Furthermore, thanks to how \lprog works,
+its argument. For example, the Coq term for the equality function \texttt{fun x => x}
+would be represented by the HOAS term $\lambda (x \mapsto x)$, where $x\mapsto x$
+is the \lprog identity function. This makes it very easy to compute on this syntax,
+since all the work is done by the language. Furthermore, thanks to how \lprog works,
 it doesn't makes it that harder to analyse the syntax (while in other languages
 functions are opaque containers).
 
