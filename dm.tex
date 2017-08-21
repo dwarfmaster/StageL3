@@ -391,7 +391,9 @@ So the record will pack a type, an equality function on it and the proof of
 correctness of the function. From a computational point of view we've got what we
 want but it can be interpreted another way : saying that the equality on a
 type is equivalent to a boolean function means that equality is decidable for
-this type. With that in mind, it turns out \emph{MathComp} already has a
+this type. With that in mind, it turns out
+\href{https://github.com/math-comp/math-comp}{\emph{MathComp}} (a Coq library
+formalizing a huge body of mathematics) already has a
 canonical structure for this called \texttt{EqType}. Defining another one was
 still preferred to avoid adding \emph{MathComp} to the dependencies, but it
 could be ported with minimal effort. Furthermore Coq already has a
