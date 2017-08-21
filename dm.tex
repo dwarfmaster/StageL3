@@ -182,21 +182,18 @@ Coq terms.
 
 \subsection{ELPI : Embedded Lambda Prolog Interpreter}
 
-Let's have a more detailed look to this last option. $\lambda$-prolog brings us
+Let's have a more detailed look to this last option. $\lambda$Prolog brings us
 backtracking (which won't really be used in the rest of the paper, but can be
 used to easily implement types unification\cite{ELPItype}) and higher order unification
 for free. The latter is particularly useful when extracting information from
-Coq terms. On the other hand, the ELPI and its Coq API are both fairly recent,
-and thus lack feedback, thus still having still some small bugs and more
-importantly lacking debugging tools. There is as of now no way to track which generated
-term caused a Coq error, for example.
+Coq terms.
 
-Let's talk a bit more about the generated terms. The API exposes an abstract
-syntax to manipulate them, and interact with Coq. This means the only thing we
-can generate are constants (function, theorems but not types). The term themselves
-are basically $\lambda$-calculus with a match construct, types annotations, a
-fixpoint operator and a specific abstraction for types. See figure \ref{LambdaCoq}
-for a more detailed definition.
+Speaking of those, the API exposes an abstract syntax to manipulate them, and
+interact with Coq. This means the only thing we can generate are constants
+(function, theorems but not types). The term themselves are basically
+$\lambda$-calculus with a match construct, types annotations, a fixpoint operator
+and a specific abstraction for types. See figure \ref{LambdaCoq} for a more
+detailed definition.
 
 \begin{figure}
     \begin{center}\begin{tabular}{cc}
@@ -227,6 +224,11 @@ its argument. This makes it very easy to compute on this syntax, since all the
 work is done by the language. Furthermore, thanks to how $\lambda$-prolog works,
 it doesn't makes it that harder to analyse the syntax (while in other languages
 functions are opaque containers).
+
+Using ELPI and its Coq API still have important drawbacks, even though they are
+mostly due to the youth of the project. Indeed, they lack feedback, thus still
+having some small bugs and more importantly lacking debugging tools. There is
+as of now no way to track which generated term caused a Coq error, for example.
 
 \section{Deriving decidable equality instances}\label{deceq}
 
