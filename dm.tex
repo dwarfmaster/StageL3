@@ -403,16 +403,25 @@ generation, and basically does the same, but without using canonical structures.
 
 \subsection{Deriving the proof}
 
-The structure of the proof is basically the same as the equality function, but
-instead of doing the fixpoint manually the generated induction principle was
-used. The difficulty here was that the API only allows us to write terms, and
-not use tactics, thus the whole proof term needed to be hand-generated, and
-while it was easy it still took a long time.
+The structure of the proof is basically the same as the equality function. We
+need to prove $C~x~y\ldots = C~x'~y'\ldots \leftrightarrow eq~(C~x~y\ldots)~(C~x'~y'\ldots) = true$
+and $C\ldots = C'\ldots \leftrightarrow false = true$ with $C$ and $C'$ two
+different constructors of our type. The difficulty here was that the API only
+allows us to write terms, and not use tactics, thus the whole proof term needed
+to be hand-generated, and while it was easy it still took a long time. To stick
+to the kind of proof that would be generated, the induction principle for the
+type was used instead of doing the fixpoint manually.
 
 The choice of using the induction principle is what restricted us to uniform
 parameters, since the induction principle for types with non-uniform parameters
 in not powerful enough for this use case (it doesn't mingle well with canonical
 structure usage).
+
+\subsection{Conclusion}
+
+I thus successfully implemented a decidable equality derivation mechanism for
+types with only uniform parameters. Derivation for other instances could be
+written the same way.
 
 \section{Toward a generic deriving mechanism}\label{gender}
 
