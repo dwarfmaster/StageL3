@@ -352,18 +352,22 @@ similarly to the typeclasses in Haskell. The idea is that instead of having
 parameters which are of type \texttt{Type}, we create a record containing
 a type, and additional structure for that type (in our example an equality
 function over that type). It would give a signature of the form
-$\forall (A : Eq), list (type A) \rightarrow list (type A) \rightarrow Bool$ for the comparison
+$\forall (A : Eq), list~(type~A) \rightarrow list~(type~A) \rightarrow Bool$ for the comparison
 on lists. The problem is still the same, one would say, since instead of
 giving a type and an equality function, we give a record with a type and its
 equality function inside.
 
-That's were canonical structure play a role. If we leave a \emph{hole} in the
-type argument, Coq unification algorithm has to resolve $T = type\ ?A$ with
-$A : Eq$, when applying to a \texttt{list $T$}. It can't do that on its own,
-but if we've already defined an $Eq$ for $T$, we can add an hint to the typer
-telling it to use that $Eq$ for $T$ : this is the canonical structure mechanism.
-Now we can call the function on \texttt{list $T$} and Coq will automatically
-know which comparison function to use.
+That's were canonical structure play a role. Let's say we try to compare two
+objects $x$ and $y$ of type $T$. We have a comparison function $\text{Cmp} : \forall (A : Eq),
+type~A \rightarrow type~A \rightarrow Bool$. We don't know which $Eq$ to use,
+so we call it with a \emph{hole} as first argument $Cmp~hole~x~y$. Coq
+unification algorithm needs to find $A$ of type $Eq$ such that $T = type~A$.
+This should be too difficult for it, since doing this would mean guessing a
+comparison function for $T$. But if the user created a term $A$ such that $T = type~A$,
+we would want the typer to use it~: this is the canonical structure
+mechanism. We manually define a valid $A$ for a type $T$, and add a hint to the
+typer telling it to use this $A$ when resolving equations of the from $T = type~?A$.
+We can thus make the first argument of $Cmp$ implicit and let Coq do all the work.
 
 But the mechanism is even more powerful, since now we can add an $Eq$ instance
 for \texttt{list $T$} when $T$ has an instance as $Eq$ associated. In other
