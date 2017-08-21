@@ -94,6 +94,7 @@
 \newcommand{\lf}{\mathbf{leaf}}
 \newcommand{\fld}{\mathbf{Fold}}
 \newcommand{\irule}[2]{\begin{array}{c} {#1} \\\hline {#2}\\ \end{array}}
+\newcommand{\lprog}{$\lambda$Prolog }
 \qtreecenterfalse
 
 \title{A deriving mecanism for Coq\\
@@ -176,13 +177,13 @@ that would mean that adding new instances is complicated, and adding a
 non-standard derivation mechanism would mean maintaining a patch over Coq. Using
 the plugin interface seems better in that case, but it still requires good
 knowledge of Coq internals, and is prone to be broken by Coq updates. Thankfully
-another solution exists : a $\lambda$-prolog\cite{HiOrProg} interpreter has
+another solution exists : a \lprog\cite{HiOrProg} interpreter has
 been embedded into Coq, ELPI\cite{ELPI} and comes with a API to manipulate
 Coq terms.
 
 \subsection{ELPI : Embedded Lambda Prolog Interpreter}
 
-Let's have a more detailed look to this last option. $\lambda$Prolog brings us
+Let's have a more detailed look to this last option. \lprog brings us
 backtracking (which won't really be used in the rest of the paper, but can be
 used to easily implement types unification\cite{ELPItype}) and higher order unification
 for free. The latter is particularly useful when extracting information from
@@ -221,7 +222,7 @@ that there is no \texttt{Var} constructor : when abstracting over a term, what
 is given is a function from a term to a term, and thus the $\beta$-reduction
 of the application of this term is simply the application of the function to
 its argument. This makes it very easy to compute on this syntax, since all the
-work is done by the language. Furthermore, thanks to how $\lambda$-prolog works,
+work is done by the language. Furthermore, thanks to how \lprog works,
 it doesn't makes it that harder to analyse the syntax (while in other languages
 functions are opaque containers).
 
@@ -330,7 +331,7 @@ the constructor is a \texttt{list $A$} where $A$ is a parameter of the type
 we're working on ?
 
 One solution would be to use a database of equality functions for types, and
-looking into it when a comparison function is needed, using the $\lambda$Prolog
+looking into it when a comparison function is needed, using the \lprog
 unification to identify parameters of type and looking for their equality function
 recursively. The algorithm is roughly :\begin{enumerate}
     \item need to compare \texttt{list $A$}, have comparison function $f_{list}$ of type
@@ -342,7 +343,7 @@ recursively. The algorithm is roughly :\begin{enumerate}
     \item return $f_{list}\ A\ f_A$
 \end{enumerate}
 
-It is quite easy to do thanks to the unification feature of $\lambda$Prolog,
+It is quite easy to do thanks to the unification feature of \lprog,
 but an outside of Coq database needs to be maintained and updated when a new
 function is derived. And it is wasteful because Coq already has a mechanism
 which can do it for us : \emph{canonical structures}.
@@ -666,7 +667,7 @@ the $do^*$, and generates the appropriate fold. Of course our API is not as
 simple as above, since we add a lot of metadata to make the writing of terms
 easier.
 
-The point is to write a set of $\lambda$Prolog relations, one for each arguments
+The point is to write a set of \lprog relations, one for each arguments
 of fold, which starts with the name of the generator. That way multiple definitions
 can be accumulated on the same execution, and they can be referred to. This is
 what the \texttt{Name} argument will be. Other arguments present in every relation
@@ -818,7 +819,7 @@ rules for the new terms) and simplified. Hopefully all the special terms
 disappear during that step. If they don't, the generation fails.
 
 The new constructions and their rule are given below (the syntax used here is not valid
-$\lambda$Prolog syntax, it is used to give the intuition for the use of the
+\lprog syntax, it is used to give the intuition for the use of the
 new terms). In the last rule, $x'$ designate the representation in terms of
 sum of products of any instance of $x$.
 
@@ -907,7 +908,7 @@ the two mentioned above~: \begin{itemize}
         us a way to define ourselves recursively on the kind until we reached
         the kind $*$, so maybe not all is lost.
     \item If Coq itself is not able to choose which function to apply when
-        recursing, a specific $\lambda$Prolog generator can do~: it was what
+        recursing, a specific \lprog generator can do~: it was what
         we were doing in the first approach.
 \end{itemize}
 
