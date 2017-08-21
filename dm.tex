@@ -1,0 +1,978 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[left=3cm, right=3cm, bottom=3cm, top=3cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{eufrak}
+\usepackage{qtree}
+\usepackage{tipa}
+\usepackage{indentfirst}
+\usepackage[shortlabels]{enumitem}
+\usepackage{stmaryrd}
+\usepackage{qtree}
+\usepackage{color}
+\usepackage{ebproof}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage[disable,colorinlistoftodos,prependcaption]{todonotes}
+\usepackage{datetime}
+\newcommand{\mtodo}[1]{\todo[inline]{{#1}}}
+
+\makeatletter
+\newskip\@bigflushglue \@bigflushglue = -100pt plus 1fil
+\def\bigcenter{\trivlist \bigcentering\item\relax}
+\def\bigcentering{\let\\\@centercr\rightskip\@bigflushglue%
+\leftskip\@bigflushglue
+\parindent\z@\parfillskip\z@skip}
+\def\endbigcenter{\endtrivlist}
+\makeatother
+
+\setcounter{tocdepth}{3}
+
+\MakeRobust{\overrightarrow}
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\lstset{ %
+  backgroundcolor=\color{white},      % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}; should come as last argument
+  basicstyle=\footnotesize,           % the size of the fonts that are used for the code
+  breakatwhitespace=false,            % sets if automatic breaks should only happen at whitespace
+  breaklines=true,                    % sets automatic line breaking
+  captionpos=b,                       % sets the caption-position to bottom
+  commentstyle=\color{cyan},          % comment style
+  deletekeywords={...},               % if you want to delete keywords from the given language
+  escapeinside={\%*}{*)},             % if you want to add LaTeX within your code
+  extendedchars=true,                 % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+  frame=L,	                          % adds a frame around the code
+  keepspaces=true,                    % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+  keywordstyle=\bf\color{green!40!black},      % keyword style
+  language=Haskell,                       % the language of the code
+  morekeywords={*,...},               % if you want to add more keywords to the set
+  %numbers=left,                      % where to put the line-numbers; possible values are (none, left, right)
+  %numbersep=5pt,                     % how far the line-numbers are from the code
+  %numberstyle=\bf\tiny\color{blue},  % the style that is used for the line-numbers
+  rulecolor=\color{black},            % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+  showspaces=false,                   % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+  showstringspaces=true,              % underline spaces within strings only
+  showtabs=false,                     % show tabs within strings adding particular underscores
+  stepnumber=1,                       % the step between two line-numbers. If it's 1, each line will be numbered
+  stringstyle=\color{mymauve},        % string literal style
+  tabsize=4,	                      % sets default tabsize to 2 spaces
+  title=\lstname                      % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+
+\pagestyle{fancy}
+\lhead{A deriving mecanism for Coq}
+\rhead{Luc Chabassier}
+
+\newcommand{\vc}[1]{\overrightarrow{#1}}
+\newcommand{\mirrorh}[1]{\raisebox{\depth}{\scalebox{1}[-1]{#1}}}
+\newcommand{\sss}{\subset}
+\renewcommand{\ss}{\subseteq}
+\newcommand{\rsss}{\supset}
+\newcommand{\rss}{\supseteq}
+\newcommand{\lbr}{\llbracket}
+\newcommand{\rbr}{\rrbracket}
+\newcommand{\sem}[1]{\lbr {#1} \rbr}
+\newcommand{\msig}[1]{\langle {#1} \rangle}
+\renewcommand{\L}{\mathscr{L}}
+\newcommand{\C}{\mathscr{C}}
+\newcommand{\V}{\mathscr{V}}
+\newcommand{\K}{\mathfrak{K}}
+\newcommand{\F}{\mathscr{F}}
+\newcommand{\suc}{\mathbf{s}}
+\newcommand{\con}{\mathbf{con}}
+\newcommand{\args}{\mathbf{Args}}
+\newcommand{\lf}{\mathbf{leaf}}
+\newcommand{\fld}{\mathbf{Fold}}
+\newcommand{\irule}[2]{\begin{array}{c} {#1} \\\hline {#2}\\ \end{array}}
+\qtreecenterfalse
+
+\title{A deriving mecanism for Coq\\
+    {\normalsize Rapport de stage de L3}}
+\author{Luc Chabassier\\
+    Computer Science Departement\\
+    École Normale Supérieure
+}
+\date{\today}
+
+\begin{document}
+\maketitle
+\vfill
+\tableofcontents
+\vfill
+Internship done with team MARELLE at INRIA Sophia-Antipolis from the
+\formatdate{12}{6}{2017} to \formatdate{4}{8}{2017} under the direction of
+Enrico Tassi.
+\newpage
+
+
+\section{Introduction}
+
+Some programs are doubly generics in that they can be defined over almost any
+datatype, because they follow a pattern. One such example is the equality
+function, which implementation can be deduced from the datatype definition. These
+programs are thus tedious to write since they are easy and repetitive, basically
+just following the datatype definition.
+
+\subsection{Haskell example}
+
+Because of this, the Haskell standard impose the compilers to be able to \emph{derive}
+typeclasses instances for the typeclasses \texttt{Eq}, \texttt{Ord}, \texttt{Enum},
+\texttt{Bounded}, \texttt{Show} and \texttt{Read}. As can be seen in the
+figure \ref{woDeriv}, the code gains in concision, readability and resilience
+since there is no implementation to update when the datatype is changed.
+
+\begin{figure}
+    \begin{lstlisting}
+    data LTerm = Var Integer | App LTerm LTerm | Abs LTerm
+
+    instance Eq LTerm where
+        Var i     == Var j     = i == j
+        App x1 y1 == App x2 y2 = x1 == x2 && y1 == y2
+        Abs x     == Abs y     = x == y
+        _         == _         = false
+    \end{lstlisting}
+
+    \begin{lstlisting}
+    data LTerm = Var Integer | App LTerm LTerm | Abs LTerm deriving (Eq)
+    \end{lstlisting}
+    \caption{With and without derivation for De Brujin $\lambda$-terms}
+    \label{woDeriv}
+\end{figure}
+
+While this is all well and good, the programmer might want instances for other
+classes to be derived. For example \texttt{map} (ie instances of \texttt{functor})
+is a function that also follow a pattern. And indeed \emph{GHC} has extensions
+to derive instances of \texttt{Functor}, but also \texttt{Foldable} and
+\texttt{Traversable} for example. Despite this, the fact the programmer has to
+rely to a non-standard extension of a compiler to derive is worrisome, and if he
+wants to add derivation for other typeclasses he needs to patch the compiler.
+This has led to many proposals and research to define a way to describe derivation
+patterns directly in Haskell~\cite{genDerHaskell10}~\cite{reflDer97}~\cite{genDep},
+even going all the way to an embedded language for meta programming~\cite{templateHaskell}.
+
+\subsection{Going back to Coq}
+
+Now that we've seen the benefits of a deriving mechanism, let's look at the Coq
+situation : there is nothing, not even research on the subject. The closest
+things that can be found is \emph{Coq in Coq}\cite{coqincoq}, which is more of
+a formalisation of Coq's calculus of inductive construction in Coq than a
+meta Coq programming attempt. Actually this is not completely true : Coq does
+implicit derivation of an induction principle when a datatype is defined, but
+it is quite weak (the generated principle is useless as soon as nested types
+appear).
+
+We could go the same way and implement other derivations directly in Coq, but
+that would mean that adding new instances is complicated, and adding a
+non-standard derivation mechanism would mean maintaining a patch over Coq. Using
+the plugin interface seems better in that case, but it still requires good
+knowledge of Coq internals, and is prone to be broken by Coq updates. Thankfully
+another solution exists : a $\lambda$-prolog\cite{HiOrProg} interpreter has
+been embedded into Coq, ELPI\cite{ELPI} and comes with a API to manipulate
+Coq terms.
+
+\subsection{ELPI : Embedded Lambda Prolog Interpreter}
+
+Let's have a more detailed to this last option. $\lambda$-prolog brings us
+backtracking (which won't really be used in the rest of the paper, but can be
+used to easily implement types unification\cite{ELPItype}) and higher order unification
+for free. The latter is particularly useful when extracting information from
+Coq terms. On the other hand, the ELPI and its Coq API are both fairly recent,
+and thus lack feedback, thus still having still some small bugs and more
+importantly lacking debugging tools. There is as of now no way to track which generated
+term caused a Coq error, for example.
+
+Let's talk a bit more about the generated terms. The API exposes an abstract
+syntax to manipulate them, and interact with Coq. This means the only thing we
+can generate are constants (function, theorems but not types). The term themselves
+are basically $\lambda$-calculus with a match construct, types annotations, a
+fixpoint operator and a specific abstraction for types. See figure \ref{LambdaCoq}
+for a more detailed definition.
+
+\begin{figure}
+    \begin{center}\begin{tabular}{cc}
+        $\begin{array}{rcll}
+            \Lambda & := & \Lambda\Lambda & \text{Application} \\
+                    & |  & \lambda (\V : \Lambda). \Lambda & \text{Abstraction} \\
+                    & |  & \forall (\V : \Lambda). \Lambda & \text{Product} \\
+                    & |  & \text{fix } (\V : \Lambda)\ \Lambda & \text{Fixpoint} \\
+                    & |  & \text{match } \V\ [\Lambda] & \text{Match} \\
+                    & |  & \C & \\
+        \end{array}$ & $\begin{array}{rcll}
+            \C & := & \V & \text{Var} \\
+               & |  & \text{const \emph{Str}} & \text{Constant} \\
+               & |  & \text{indc \emph{Str}}  & \text{Constructor} \\
+               & |  & \text{indt \emph{Str}}  & \text{Type} \\
+        \end{array}$ \\
+    \end{tabular}\end{center}
+    \caption{Coq $\lambda$-calculus as seen from ELPI's API}
+    \label{LambdaCoq}
+\end{figure}
+
+What is particularly interesting is that instead of using an abstract syntax tree,
+what's used is an \emph{higher order abstract syntax} (HOAS). What that means is
+that there is no \texttt{Var} constructor : when abstracting over a term, what
+is given is a function from a term to a term, and thus the $\beta$-reduction
+of the application of this term is simply the application of the function to
+its argument. This makes it very easy to compute on this syntax, since all the
+work is done by the language. Furthermore, thanks to how $\lambda$-prolog works,
+it doesn't makes it that harder to analyse the syntax (while in other languages
+functions are opaque containers).
+
+\section{Deriving decidable equality instances}\label{deceq}
+
+All the code is available at \url{https://github.com/LPCIC/coq-elpi}. The file
+where the generation is done is \texttt{eq.elpi}
+and the corresponding Coq file with the examples is \texttt{theories/test\_eq.v}.
+
+This implementation was done without any formalisation on the types manipulated
+nor forethought, resulting in a working but limited implementation.
+
+\begin{figure}
+    \begin{center}$\begin{array}{rcl}
+        \K & := & * \\
+           & |  & \text{indt \emph{Str}} \\
+           & |  & \K\rightarrow\K \\
+    \end{array}$\end{center}
+    \caption{Kind definition}
+    \label{kinds}
+\end{figure}
+
+\begin{figure}
+    \begin{verbatim}
+Inductive Nest (A : Type) :=
+| NNil  : Nest A
+| NCons : A -> Nest (A * A) -> Nest A.
+    \end{verbatim} 
+
+    \begin{verbatim}
+Inductive Tree (A : Type) :=
+| Leaf : A -> Tree A
+| Node : list (Tree A) -> Tree A.
+    \end{verbatim}
+    \caption{\texttt{Nest} and \texttt{Tree} type definitions}
+    \label{types}
+\end{figure}
+
+\newpage
+\subsection{Types handled}
+
+ELPI's API describes types with two information~:\begin{description}
+    \item[kind] It's the type of the type, or more precisely a description of
+        the parameters of the type. See figure \ref{kinds} for a formal
+        definition of kinds. Notice how a parameter can be a term, this is
+        for example used when encoding the length of a list inside its type.
+        This specific case will \emph{not} be considered in this work. Parameters
+        themselves can be one of the following~:\begin{description}
+            \item[uniform] A uniform parameter is one which remain unchanged
+                in the arguments of the constructors. For example, a list parameter
+                is uniform since to build a list of $A$, you need a list of $A$.
+            \item[non-uniform] A non-uniform parameter can changes in the arguments
+                of the constructors. An example is the parameter of the
+                \texttt{Nest} type defined in figure \ref{types}. But the parameter
+                remain unchanged in the result of the constructors, as with
+                uniform parameters. They won't be handled in this generation
+                but will supported in section \ref{gender}.
+            \item[index] Indexes are parameters which can change in the result
+                of the constructors. They are mostly used to add information
+                in the type~: for example the \texttt{vector} Coq type is basically
+                a list with a \texttt{nat} index which record its size, and is
+                thus increased by every \texttt{Cons} construction.
+        \end{description}
+    \item[constructors] Constructors can be seen has function which takes arguments
+        and return an instance of the type, except they have no body. A type is
+        recursive if one of its constructor takes an instance of itself as
+        argument. The generation makes some assumptions on the types of the
+        constructors~:\begin{itemize}
+            \item their is no \emph{nested instance} of the type in the arguments
+                of the constructor, the Type does not appear as parameter of
+                other types, as seen in type
+                \texttt{Tree} defined in figure \ref{types}. This case will be
+                handled in section \ref{gender}.
+            \item the arguments of the constructors are not dependants, meaning
+                that the type of an argument cannot depend on the value of
+                a previous argument.
+        \end{itemize}
+\end{description}
+
+\subsection{Deriving an equality function}
+
+The structure of an equality function is pretty easy to describe on a type of
+kind $*$~: the two instances are destructed, and if they were built with
+the same constructor the equality of the constructor arguments are compared,
+otherwise the to instance are different and false can be returned.
+
+Handling parameters is has easy : for each parameter, the equality function
+takes as arguments an equality function for the parameters, and uses it to
+compare their instances in the arguments of the constructors. The resulting
+type for the equality for the list would thus be
+$\forall (A : Type), (A \rightarrow A \rightarrow Bool) \rightarrow
+list A \rightarrow list A \rightarrow Bool$.
+
+This leaves open the question of how to compare others types. Let's say for
+example that a constructor takes a \texttt{nat} as argument, the function needs
+to know how to compare it. One possibility would be to add an argument to the
+function which would be an equality function for \texttt{nat}. But this fall
+short when the arguments are types with parameters~: what if the argument of
+the constructor is a \texttt{list $A$} where $A$ is a parameter of the type
+we're working on ?
+
+One solution would be to use a database of equality functions for types, and
+looking into it when a comparison function is needed, using the $\lambda$Prolog
+unification to identify parameters of type and looking for their equality function
+recursively. The algorithm is roughly :\begin{enumerate}
+    \item need to compare \texttt{list $A$}, have comparison function $f_{list}$ of type
+        $\forall (T : Type), (T \rightarrow T \rightarrow Bool) \rightarrow
+        list T \rightarrow list T \rightarrow Bool$.
+    \item identify $T$ with $A$, a function of type $A \rightarrow A \rightarrow Bool$
+        is thus needed
+    \item use the argument $f_A$ taken for parameter $A$
+    \item return $f_{list}\ A\ f_A$
+\end{enumerate}
+
+It is quite easy to do thanks to the unification feature of $\lambda$Prolog,
+but an outside of Coq database needs to be maintained and updated when a new
+function is derived. And it is wasteful because Coq already has a mechanism
+which can do it for us : \emph{canonical structures}.
+
+\subsection{Canonical structures to the rescue}
+
+Canonical Structures were introduced in Coq to provide ad-hoc polymorphism,
+similarly to the typeclasses in Haskell. The idea is that instead of having
+parameters which are of type \texttt{Type}, we create a record containing
+a type, and additional structure for that type (in our example an equality
+function over that type). It would give a signature of the form
+$\forall (A : Eq), list (type A) \rightarrow list (type A) \rightarrow Bool$ for the comparison
+on lists. The problem is still the same, one would say, since instead of
+giving a type and an equality function, we give a record with a type and its
+equality function inside.
+
+That's were canonical structure play a role. If we leave a \emph{hole} in the
+type argument, Coq unification algorithm has to resolve $T = type\ ?A$ with
+$A : Eq$, when applying to a \texttt{list $T$}. It can't do that on its own,
+but if we've already defined an $Eq$ for $T$, we can add an hint to the typer
+telling it to use that $Eq$ for $T$ : this is the canonical structure mechanism.
+Now we can call the function on \texttt{list $T$} and Coq will automatically
+know which comparison function to use.
+
+But the mechanism is even more powerful, since now we can add an $Eq$ instance
+for \texttt{list $T$} when $T$ has an instance as $Eq$ associated. In other
+words, instances of canonical structures can have dependencies, which are
+also automatically solved by Coq. For a more in-depth description of canonical
+structures, please see \cite{CSCoq13}.
+
+Now our problem resolves itself : when comparing two instances of a type $type E$,
+we have the equality function given inside $E$, since Coq has done all the
+unification work.
+
+We're left with the definition of the canonical structure we want to work with.
+A structure packing a type and an equality function on would be sufficient
+if we were to only derive the function, as we would do in Haskell. But in Coq
+we've got more power : our function only has value if it is correct (we don't
+want a user to provide a constant function for example), so we also want to
+pack a proof of the correctness of our function with it, something that
+says :
+\[\forall (x\ y : T), f_T\ x\ y = true \leftrightarrow x = y\]
+
+So the record will pack a type, an equality function on it and the proof of
+correctness of the function. From a computational point of view we've got what we
+want but it can be interpreted another way : saying that the equality on a
+type is equivalent to a boolean function means that equality is decidable for
+this type. With that in mind, it turns out \emph{MathComp} already has a
+canonical structure for this called \texttt{EqType}. Defining another one was
+still preferred to avoid adding \emph{MathComp} to the dependencies, but it
+could be ported with minimal effort. Furthermore Coq already has a
+\emph{decide equality} tactic, which works in the same conditions as our
+generation, and basically does the same, but without using canonical structures.
+
+\subsection{Deriving the proof}
+
+The structure of the proof is basically the same as the equality function, but
+instead of doing the fixpoint manually the generated induction principle was
+used. The difficulty here was that the API only allows us to write terms, and
+not use tactics, thus the whole proof term needed to be hand-generated, and
+while it was easy it still took a long time.
+
+The choice of using the induction principle is what restricted us to uniform
+parameters, since the induction principle for types with non-uniform parameters
+in not powerful enough for this use case (it doesn't mingle well with canonical
+structure usage).
+
+\section{Toward a generic deriving mechanism}\label{gender}
+
+In the previous section, we described how both the equality function and its
+correctness proof were computed. They both followed a similar pattern, and
+yet their codebase are completely disjunct. This calls for a common API
+simplifying the description of derivation schemes, or even better a generic
+derivation description mechanism.
+
+To do that, we first need to precisely describe which types we're working with.
+Despite the lack of literature on the subject in Coq, Haskell has plenty to
+choose from. The formalism we will describe now has been heavily inspired by
+the article \cite{genDep}.
+
+\subsection{Polynomial type formalism}
+
+\subsubsection{Type definition}
+
+Our formalism will allow us to describe nested, non-uniform parametric
+polynomial types. From now on the term product will be used to describe a pair,
+since pairs are made by taking the product of two types, and not the meaning
+it has in Coq, describing dependent types.
+
+First we need to define kinds. The definition in figure \ref{kinds} is the
+one we will use, without the possibility to have terms on types. A type
+first needs to have its kind fixed, and since we want to handle mutually recursive
+(nested) datatype, we define $Sig$ to be a list of kinds, the list of the kinds
+of the type we're defining~:
+\[\begin{array}{cc}
+    \irule{}{\epsilon : Sig} & \irule{K : \K\quad S : Sig}{K;S : Sig}
+\end{array}\]
+
+Let's notice that kinds can be seen as $Sig$. Indeed, a kind is a list of kinds
+(its parameters) and it returns an object of kind  $*$. All the information is
+thus the parameters, in other world a Sig. Thus we introduce the symbol $\msig{.}$
+to denote this conversion~:
+\[\irule{K : \K}{\msig{K} : Sig}\]
+
+We now define a way to refer to the nth element of a $Sig$ in a type safe
+manner~:
+\[\begin{array}{cccc}
+      \irule{S : Sig\quad K : \K}{Var\ S\ K : Type}
+    & \text{where}
+    & \irule{S : Sig\quad K : \K}{0 : Var\ (K;S)\ K}
+    & \irule{v : Var\ S\ K\quad J : \K}{\suc v : Var\ (J;S)\ K} \\
+\end{array}\]
+
+We must now define the polynomial representation of a type. A polynomial
+definition is parametrized by $\Delta$ the list of kinds of the types we're
+defining, $\Lambda$ the list of its parameters and $K$ the kind of the expression.
+$V$ is used to refer to a parameter and $D$ to one of the type we're defining.
+Here we differ from the original article in that instead of generally defining
+polynomial types, we define them in sum-of-products forms, leaving us the
+opportunity to add metadata for the user in the implementation.
+
+\[  \begin{array}{c}
+        \irule{\Delta, \Lambda : Sig\quad K : \K}{Tyl\ \Delta\ \Lambda\ K : Type} \\
+        \irule{\Delta, \Lambda : Sig}{Typ\ \Delta\ \Lambda : Type} \\
+        \irule{\Delta, \Lambda : Sig}{Ty\ \Delta\ \Lambda : Type} \\
+    \end{array}
+    \text{ where }
+    \begin{array}{cc}
+        \irule{v : Var\ \Delta\ K}{Dv : Tyl\ \Delta\ \Lambda\ K}
+            & \irule{v : Var\ \Delta\ K}{Vv : Tyl\ \Delta\ \Lambda\ K} \\
+        \multicolumn{2}{c}{\irule{F : Tyl\ \Delta\ \Lambda\ (J\rightarrow K)\quad
+                X : Tyl\ \Delta\ \Lambda\ J}
+            {F\cdot X : Tyl\ \Delta\ \Lambda\ K}} \\
+        \irule{}{1 : Typ\ \Delta\ \Lambda}
+            & \irule{S, T : Typ\ \Delta\ \Lambda}{S \times T : Typ\ \Delta\ \Lambda} \\
+        \irule{}{0 : Ty\ \Delta\ \Lambda}
+            & \irule{S, T : Ty\ \Delta\ \Lambda}{S + T : Ty\ \Delta\ \Lambda} \\
+        \irule{P : Typ\ \Delta\ \Lambda}{\con P : Ty\ \Delta\ \Lambda}
+            & \irule{L : Tyl\ \Delta\ \Lambda\ *}{\lf L : Typ\ \Delta\ \Lambda} \\
+    \end{array}
+\]
+
+The type of the definition of a type of kind $K:\K$ is thus $Ty\ \Delta\ \msig{K}$.
+
+We can now assign a meaning to a signature $\Delta$ as the function which takes
+a variable selecting one of the kinds in it and returns the polynomial type
+definition for it~:
+
+\[\irule{\Delta : Sig}{\sem{\Delta} : \forall (K : \K), Var\ \Delta\ K\rightarrow
+Ty\ \Delta\ \msig{K}} \]
+
+In the rest of the paper we will assume $K$ to be implicit, since it can be
+deduced from the value of the $Var$.
+
+\subsubsection{Populating those types}
+
+After giving a way to define the types, we need to define constructors for
+them. We will work with an arbitrary definition $\delta = \sem{\Delta}$. We
+thus want to give an interpretation to a type definition~:
+
+\[\begin{array}{ccc}
+    \irule{T : Ty\ \Delta\ \epsilon}{\sem{T}_\delta : Type}
+    & \irule{T : Typ\ \Delta\ \epsilon}{\sem{T}_\delta : Type}
+    & \irule{T : Tyl\ \Delta\ \epsilon\ *}{\sem{T}_\delta : Type}
+    \\
+\end{array}\]
+
+Notice how the types are all fully applied. We need to introduce a way to work
+with a list of parameters. We represent it as function space, with type
+$\args$~:
+
+\[\irule{\Delta : Sig\quad K : \K}{\args\ \Delta\ K : Type}
+    \text{ where }
+    \args\ \Delta\ K = \forall (J : \K), Var\ \msig{K} J\rightarrow Tyl\ \Delta\ \epsilon\ J
+\]
+
+To make it easier to work with it, we introduce two new operators : application
+and substitution by a list of parameters (their semantic is obvious, so we wont
+detail it).
+\[\begin{array}{cc}
+      \irule{X : Tyl\ \Delta\ \epsilon\ K\quad \vc{Y} : \args\ \Delta\ K}
+        {X@\vc{Y} : Tyl\ \Delta\ \epsilon\ *}\text{(app)}
+    & \irule{X : Tyl\ \Delta\ \msig{J}\ K\quad \vc{Y} : \args\ \Delta\ J}
+        {X[\vc{Y}] : Tyl\ \Delta\ \epsilon\ K}\text{(subst)} \\
+\end{array}\]
+
+We can now express the constructors.
+
+\[\begin{array}{cccc}
+      \irule{s : \sem{S}_\delta}{\text{inl}\ s : \sem{S + T}_\delta}
+    & \irule{t : \sem{T}_\delta}{\text{inr}\ t : \sem{S + T}_\delta}
+    & \irule{}{\text{unit} : \sem{1}_\delta}
+    & \irule{s : \sem{S}_\delta\quad t : \sem{T}_\delta}{\text{pair}\ s\ t : \sem{S\times T}_\delta}
+    \\
+      \irule{t : \sem{(\delta\ v)[\vc{X}]}_\delta}{\text{typ}_v\ t : \sem{D v@\vc{X}}_\delta}
+    & \irule{S : Typ\ \Delta\ \Lambda\quad t : \sem{S}_\delta}{\text{con}\ t : \sem{\con S}}
+    & \irule{S : Tyl\ \Delta\ \Lambda\ *\quad t : \sem{S}_\delta}{\text{leaf}\ t : \sem{\lf S}}
+    &
+    \\
+\end{array}\]
+
+This representation allows us to describe inductive type, eventually nested,
+with both uniform and non-uniform parameters, but not indexes.
+
+\subsubsection{Interpretation and example}
+
+What we must notice here is that a regular Coq type of kind $K$ has type
+$Tyl\ \Delta\ \msig{K}\ *$, which is constructed using $\text{typ}_v$ where
+$v$ is the index of the definition of the type in $\Delta$. Thus we have a
+type in the form of sum of products of basic Coq types. The con and leaf constructor
+are used to add metadata, like which constructor are we using and which argument
+of the constructor are we in. This is not relevant in our theory but may be
+useful when writing concrete generators.
+
+Let's now look at an example to understand a bit better the notation. We'll use
+the \texttt{Tree} type from figure \ref{types}. Since it uses a \texttt{list}
+we'll assume it is defined at the same time. Both \texttt{list} and \texttt{Tree}
+have kind $*\rightarrow *$, so the signature we'll use is
+$\Delta = *\rightarrow *; *\rightarrow *; \epsilon$. We decide \texttt{list} is the first
+one and \texttt{Tree} the second one. We can now give the interpretation of our
+signature (ie the definition of the two types)~:
+
+\[\sem{\Delta} = \left\{\begin{array}{rcl}
+    0 & \mapsto & \con_{\text{nil}}\ \lf_0\ 1 + \con_{\text{cons}}\ (\lf_0\ V0 \times \lf_1\ (D0\cdot V0)) \\
+    \suc 0 & \mapsto & \con_{\text{Leaf}}\ \lf_0\ V0
+        + \con_{\text{Node}}\ \lf_0\ (D0\cdot (D\suc 0\cdot V0)) \\
+\end{array}\right.\]
+
+Metadata annotations were added to $\con$ and $\lf$ to make it easier to link
+the definition here with the one we would use in Coq.
+
+Let's have a look at what would give an instance, for example a tree of \texttt{nat}
+with one leaf (we will use \texttt{nat} as a black box, and not give its
+definition)~:
+\begin{verbatim}
+    Node (cons (Leaf 42) nil)
+\end{verbatim}
+
+The corresponding representation would thus be~:
+\begin{align*} \text{typ}_{\suc 0} (\text{inr}\ \text{con}_\text{Node}\ \text{leaf}_0
+    (&\text{typ}_0 \text{inr}\ \text{con}_\text{cons}\ (\text{pair} \\
+        &(\text{leaf}_0\ \text{typ}_{\suc 0}\ \text{inl}\ \text{con}_\text{Leaf}\ \text{leaf}_0 42) \\
+        &(\text{leaf}_1\ \text{typ}_0\ \text{inl}\ \text{con}_\text{nil}\ \text{unit})
+    ))
+)
+\end{align*}
+
+\subsection{First approach : a generic fold}
+
+Having found a nice representation of types, we must now find a way to describe
+computations over it. Our aim is not to be able to describe every possible
+computation, but to find a compromise between a clean API and a good
+expressiveness.
+
+\subsubsection{Theory}
+
+First we need to define the type of our operation. We call the type of our
+operation $\fld$. It will need a few parameters~:\begin{itemize}
+    \item $K$ the kind of the type we're working on.
+    \item $X$ the type we're working on, of kind $K$.
+    \item $\mathbf{Y}$ a $n$-ary vector of types, all of kind $K$.
+    \item $\Phi$ is the user provided function which allows to control the
+        resulting type. It takes a term as argument as we may want to generate
+        proofs, which may require dependent types.
+\end{itemize}
+
+More precisely, we have~:
+
+\[\begin{array}{cc}
+    \irule{X : Ty\ \Delta\ \epsilon\quad \mathbf{Y} : (Ty\ \Delta\ \epsilon)^n\quad a : X}
+        {\Phi\ a\ X\ \mathbf{Y} : Type}
+    & \irule{X : Typ\ \Delta\ \epsilon\quad \mathbf{Y} : (Typ\ \Delta\ \epsilon)^n\quad a : X}
+        {\Phi\ a\ X\ \mathbf{Y} : Type}
+    \\
+    \multicolumn{2}{c}{
+        \irule{X : Tyl\ \Delta\ \epsilon\ *\quad \mathbf{Y} : (Tyl\ \Delta\ \epsilon\ *)^n\quad a : X}
+        {\Phi\ a\ X\ \mathbf{Y} : Type}}
+    \\
+\end{array}\]
+
+$\fld$ is defined recursively on the of the type handled (any operator with a
+$^n$ means the operator operator point to point on $n$-ary vectors) as follow~: 
+\begin{align*}
+    \fld_*\ \Phi\ S\ \mathbf{T} &= \forall (a : \sem{S}_\delta),\Phi\ a\ S\ \mathbf{T} \\
+    \fld_{J\rightarrow K}\ \Phi\ F\ \mathbf{G} &= \forall (X : Tyl\ \Delta\ \epsilon\ J)
+        \ (\mathbf{Y} : (Tyl\ \Delta\ \epsilon\ J)^n),
+        \fld_J\ \Phi\ X\ \mathbf{Y} \rightarrow\fld_K\ \Phi\ (F\cdot X) (\mathbf{G}\cdot^n\mathbf{Y})
+\end{align*}
+
+Let's now identify which parameters an instance of $\fld_K\ \Phi\ S\ \mathbf{T}$
+must have. The idea is that their is a parameter by constructor, describing
+how to build the resulting value, which $\text{fold}_X$ can combine to create
+the whole computation.
+
+Here are the typing rules we expect~:
+\[\begin{array}{cc}
+    \multicolumn{2}{c}{\irule{\phi : \Phi\ a\ ((\delta v)[\vc{W}])\ ((\delta v)^n[\vc{\mathbf{Z}}]^n)}
+        {doType\ v\ \phi : \Phi\ (\text{typ}_v\ a)\ (D v @ \vc{W})\ ((D v)^n@^n\vc{\mathbf{Z}})}} \\
+    \irule{\phi_1 : \Phi\ a\ S_1\ \mathbf{T_1}}
+            {doInl\ \phi_1 : \Phi\ (\text{inl}\ a)\ (S_1 + S_2)\ (\mathbf{T_1} +^n \mathbf{T_2})}
+        & \irule{\phi_2 : \Phi\ a\ S_2\ \mathbf{T}_2}
+            {doInr\ \phi_2 : \Phi\ (\text{inr}\ a)\ (S_1 + S_2)\ (\mathbf{T_1} +^n \mathbf{T_2})} \\
+    \irule{}{doUnit : \Phi\ \text{unit}\ 1\ 1^n}
+        & \irule{\phi_1 : \Phi\ a_1\ S_1\ T_1\quad\phi_2 : \Phi\ a_2\ S_2\ T_2}
+            {doPair\ \phi_1\ \phi_2 : \Phi\ (\text{pair}\ a_1\ a_2)\
+                (S_1\times S_2)\ (\mathbf{T_1}\times^n\mathbf{T_2}} \\
+    \irule{\phi : \Phi\ a\ S\ \mathbf{T}}{doCon\ \phi : \Phi\ (\text{con}\ a)\ (\con S)\ (\con^n\mathbf{T})}
+        & \irule{\phi : \Phi\ a\ S\ \mathbf{T}}
+            {doLeaf\ \phi : \Phi\ (\text{leaf}\ a)\ (\lf S)\ (\lf^n\mathbf{T})} \\
+\end{array}\]
+
+And with this, we want~:
+
+\[ \irule{X : Tyl\ \Delta\ \epsilon\ K}
+    {\text{fold}_X\ doType\ doInl\ doInr\ doUnit\ doPair\ doCon\ doLeaf : \fld_K\ \Phi\ X\ X^n} \]
+
+\subsubsection{Implementation}
+
+Let's get more concrete now. We want to find a system were the user gives $\Phi$, $n$,
+the $do^*$, and generates the appropriate fold. Of course our API is not as
+simple as above, since we add a lot of metadata to make the writing of terms
+easier.
+
+The point is to write a set of $\lambda$Prolog relations, one for each arguments
+of fold, which starts with the name of the generator. That way multiple definitions
+can be accumulated on the same execution, and they can be referred to. This is
+what the \texttt{Name} argument will be. Other arguments present in every relation
+are \texttt{Type} the Coq type we are
+generating for, and \texttt{Tp}, the type of the term we are actually
+handling. In other words, when handling the left part of a sum that belongs to
+the definition of a type, \texttt{Type} will be that type and \texttt{Tp} will
+be the type of the left of the sum.
+
+Let's now give the corresponding API~:\begin{itemize}
+    \item \texttt{params Name N}~: set the $n$ of the generation
+    \item \texttt{phi Name S T A Out}~: \texttt{S}, \texttt{T} and \texttt{A}
+        are the arguments of $\Phi$ (meaning that \texttt{T} is a list of types
+        of length $n$). \texttt{Out} is, as for the other rules, the resulting
+        term.
+    \item \texttt{doType Name Type Tp A Phi Out}~: \texttt{A} is the term
+        of type \texttt{Type}, and \texttt{Phi} is the result of the recursive
+        call.
+    \item \texttt{doCon Name Type Tp C A Phi Out}~: the only difference is
+        the presence of \texttt{C}, which is metadata telling which Coq
+        constructor would be used here.
+    \item \texttt{doLeaf Name Type Tp Phi Out}~: $doLeaf$ does not have metadata
+        for now, and in most case the user would want it to be the identity,
+        but it could provide the id of the argument of the constructor we're
+        considering.
+    \item \texttt{doInl Name Type Tp A Phi Out} and \texttt{doInr Name Type Tp A Phi Out}
+        are pretty straightforward.
+    \item \texttt{doUnit Name Type Out}~: their is no \texttt{Tp} since it would
+        always be the \emph{unit} type.
+    \item \texttt{doPair Name Type Tp A Phi1 Phi2 Out}~: there is only one \texttt{A}
+        since it is the pair, and not its deconstruction.
+\end{itemize}
+
+When generating the term the first thing to do is to abstract over the parameters.
+This is done by using following the definition of $\fld$, by induction over the
+kind of the considered type.
+
+After that, since we want to generate a term of type $\forall (a : T), \Phi\ a\ S\ \mathbf{T}$,
+we need to abstract over $T$ to get the element $a$. Once this is done, we must
+convert this element to a representation of sum of products, but since we want
+to do it at compile time, we need an instance of $T$, and not an abstract element.
+Thus we match on $a$ to get all the possible instances, and in every branch we
+apply the $do^*$ following the type of the element as described in the rules in
+the previous section, nesting the resulting terms.
+
+The only thing that isn't described in the previous section is how the recursive
+call is done. Indeed, when reaching a leaf of type $T'$, we need to be able to
+compute on it. $T'$ is necessarily of kind $*$, and is the application of a
+type $Tp$ of kind $K$ to a list of parameters $L$. What we do is find a fold
+for type $Tp$ (ie of type $\fld_K\ \Phi\ Tp\ Tp^n$). If we have one (either
+taken as argument or because it is the type we're recursing on), we use it.
+If we don't, the generator calls itself recursively to generate one for this
+type, and inline it. Since we may not always want to inline (for example when
+generating an equality for a type which uses \texttt{nat}, we may want to
+use an already generated equality function), we need to add a mechanism for
+the user to supply the function for some type. This is done by adding a
+\texttt{doConst Name Type Tp Out} relation to the API where \texttt{Out} must
+be a term of type $\fld_K\ \Phi\ Tp\ Tp^n$.
+
+We then need to apply it to the right arguments. This is easy since we know the
+list of parameters (and we also know the additional parameters, for $\mathbf{T}$).
+Once they are applied, we need the appropriate fold to give as argument. This is
+obtained by recursively applying our research procedure for the new type. This
+procedure always terminates since the kind of the considered type decreases at
+each recursive call.
+
+\begin{figure}
+    \begin{verbatim}
+Fixpoint tree_equal (A : Type) (f : A -> A -> bool) (a b : Tree A) :=
+match a, b with
+| Leaf _ x, Leaf _ y => f x y
+| Node _ x, Node _ y => (fix list_equal (B : Type) (g : B -> B -> bool)
+                                        (c d : list B) :=
+  match c, d with
+  | nil, nil => true
+  | cons x lx, cons y ly => andb (g x y) (list_equal B g lx ly)
+  | _, _ => false
+  end) (Tree A) (tree_equal A f) x y
+| _, _ => false
+end.
+    \end{verbatim}
+    \caption{Nested recursion failing in Coq}
+    \label{coqindfail}
+\end{figure}
+
+\begin{figure}
+    \begin{verbatim}
+Fixpoint tree_equal (A : Type) (f : A -> A -> bool) (a b : Tree A) :=
+match a, b with
+| Leaf _ x, Leaf _ y => f x y
+| Node _ x, Node _ y => (fun (B : Type) (g : B -> B -> bool) =>
+                             fix list_equal (c d : list B) :=
+  match c, d with
+  | nil, nil => true
+  | cons x lx, cons y ly => andb (g x y) (list_equal lx ly)
+  | _, _ => false
+  end) (Tree A) (tree_equal A f) x y
+| _, _ => false
+end.
+    \end{verbatim}
+    \caption{Nested recursion working in Coq}
+    \label{coqind}
+\end{figure}
+
+While this algorithm would work out of the box with Haskell, extra care must be
+taken with Coq to ensure that Coq can infer the decreasing argument. Indeed, if
+we look at the example figure \ref{coqindfail}, Coq fails to infer the decreasing
+argument of \texttt{Tree\_equal}, while the example in figure \ref{coqind}
+works. This is because Coq cannot $\beta$-reduce fixpoints, and thus only
+see the recursive function as partially applied. On reaction would be to move
+the abstraction over the parameters outside of the fixpoint. But this situation
+would fail when a parameter is non-uniform, since it changes in the recursive
+call it must be inside the fixpoint. The solution is to put the uniform
+parameters outside the fixpoint and the non-uniform inside, but then two
+problems arise~:\begin{itemize}
+    \item If a type has a non-uniform parameter, then a uniform one, the order
+        in which we abstract over them would be swapped when compared with
+        what $\fld$ would give, making the generation less predictable (and
+        more complicated). We're saved here by Coq limitations~: instead of
+        tracking which argument is uniform and which one is non-uniform, it stores
+        the number of consecutive uniform parameters of the type, and consider
+        all the following parameters non-uniform. This is exactly what we want,
+        since we can move the first parameters outside the fixpoint and keeping
+        the non-uniform one inside.
+    \item Since a part of the abstraction is moved outside of the fixpoint,
+        the function obtain when looking for a fold for the type is not something
+        of type $\fld$ but is already partially applied. This could be fixed
+        by adding a special case to the procedure but it is much easier to
+        abstract again over the recursive function, ignoring the first
+        parameters. That way the recursive function is also a $\fld$.
+\end{itemize}
+
+One could remark that this doesn't change anything to the problem if the type
+we're defining is a non-uniform parameters of another type, since the recursive
+function would still need to be given to a fixpoint. Once again we're saved by
+Coq constraints~: a type such as this fails the posivity constraint, and thus
+can't be defined in Coq. It remains unclear wether this limitation is necessary
+for the consistency of the theory, or is just a by-product of an unsound
+positivity analysis (meaning it could be removed in following Coq versions).
+
+At this point our generator works, but isn't expressive at all. Indeed, there
+is no way to manipulates sum and products in the terms given to the API. Indeed,
+to make a description of an equality function, one needs to manipulate a
+second argument of the same type as the first one, or for a map function,
+it is necessary to rebuild the type. To make that possible, the term where
+extended with other constructions to manipulate those terms. Since Coq doesn't
+about those, the generated term is first $\beta$-reduced (with special reduction
+rules for the new terms) and simplified. Hopefully all the special terms
+disappear during that step. If they don't, the generation fails.
+
+The new constructions and their rule are given below (the syntax used here is not valid
+$\lambda$Prolog syntax, it is used to give the intuition for the use of the
+new terms). In the last rule, $x'$ designate the representation in terms of
+sum of products of any instance of $x$.
+
+\[\begin{array}{cc}
+      \mathtt{match\_sum}\ (\mathtt{inl}\ x)\ f\ g\rightarrow f\ x
+    & \mathtt{match\_sum}\ (\mathtt{inr}\ y)\ f\ g\rightarrow g\ y
+    \\
+      \mathtt{uncon}\ (\mathtt{con}\ c\ x)\ f \rightarrow f\ x
+    & \mathtt{match\_prod}\ (\mathtt{prod}\ x\ y)\ f \rightarrow f\ x\ y
+    \\
+    \multicolumn{2}{c}{
+        \mathtt{abstract\_type}\ T\ x\ f\rightarrow \mathtt{match}\ x\ \mathtt{with}\ [f\ x']
+    } \\
+\end{array}\]
+
+\subsubsection{Results and limitations}
+
+In the files \texttt{geneq.elpi} and \texttt{genmap.elpi} generators for an
+equality function and a map function can be found. They are very easy to write
+once the $\Phi$ has been figured. In the case of the equality function, we
+have $\Phi_{\text{eq}}\ a\ S\ [] = S \rightarrow \text{bool}$~: the
+equality partially applied with $a$, and not other parameters (ie $n = 0$). For
+the map we set $n = 1$, and use the element in the list of parameters for the
+result~: $\Phi_{\text{map}}\ a\ S\ [T] = T$. To convince ourselves this is the
+right type, let's do it on a type of kind $*\rightarrow *$~:
+\begin{align*}
+    \fld_{*\rightarrow *}\ \Phi\ T\ [T]
+        &= \forall (X\ Y : Tyl\ \Delta\ \epsilon\ *), \fld_*\ \Phi\ X\ [Y]
+            \rightarrow \fld_*\ \Phi\ (T\cdot X)\ [T\cdot Y] \\
+        &= \forall (X\ Y : Type), (\forall (a : X), \Phi\ a\ X\ [Y])
+            \rightarrow (\forall (a : (T\cdot X)), \Phi\ a\ (T\cdot X)\ [T\cdot Y]) \\
+        &= \forall (X\ Y : Type), (X \rightarrow Y) \rightarrow ((T\cdot X)\rightarrow(T\cdot Y)) \\
+\end{align*}
+
+This is indeed the type of a map we're used to see. It seems powerful enough for
+functions, but what about proofs~? Well this were things get ugly. First of
+all writing the $\Phi$ for a proof is complicated. Indeed, when stating a specific
+equality function is correct, we state it for the whole type, and we have no
+way to refer to specific subpart of the proof. One way to circumvent this problem
+would be to generate a pair (or any record) of a function and its proof.
+
+But this is only the tip of the iceberg. Inside the equality proof, there is
+a need for projector function (ie projecting on the $n$-th argument of the $C$
+constructor of the type). With the right metadata, it could be possible to create
+them with helpers generators, and the proof would have to happen in the
+$doCon$ and not $doIn^*$.
+
+Yet it would still not work as often in a proof lemmas and external theorems
+are used, and take as argument propositions, which are written with specific
+terms in them, but which won't be simplified. Even if we complemented the
+$\beta$-reduction by $\delta$-reduction (replacing named constants by their
+body), some terms still wouldn't be possible to eliminate.
+
+So even if it may have worked for some proofs, it would be awfully slow, and still
+not work for every structural proof. What's more, it is very difficult to
+properly define which proofs could be generated and which couldn't. This call
+for another approach.
+
+\subsection{Second approach : using Coq expressivity}
+
+The intuition for this approach is that Coq is a very expressive language, so
+we want to completely lift the generation in the Coq language. The inspiration
+in Haskell Generic library~: we have a Coq type used to describe other types,
+the user write functions for this type, and an ELPI program generates the
+necessary conversion function to and from this type, along with some proofs
+of correction.
+
+More precisely, the idea is to have a type $A$, and for any polynomial type $T$
+generate $f_T : T \rightarrow A$, $g_T : A \rightarrow\mathtt{option}\ T$, and
+a proof of $\forall (x : T), g_T\ (f_T\ x) = \mathtt{Some}\ x$.
+
+But defining this type $A$ in a manner which can be computed upon turned out
+to be very complicated, more precisely in the handling of fixpoints. Haskell
+circumvented this issue by making it a typeclass and heavily relying on the
+recursive nature of the language.
+
+Furthermore, the Haskell library only handles types of kind $*$, and trying
+to generalize it might be done in Coq using dependants type, but defining any
+kind of function on it become much more complicated.
+
+\subsection{Reconciliation of the two approaches}
+
+The second approach sound like it hit a wall, but its problems can be narrowed to
+the two mentioned above~: \begin{itemize}
+    \item It only works well with types of kind $*$. But the first approach gave
+        us a way to define ourselves recursively on the kind until we reached
+        the kind $*$, so maybe not all is lost.
+    \item If Coq itself is not able to choose which function to apply when
+        recursing, a specific $\lambda$Prolog generator can do~: it was what
+        we were doing in the first approach.
+\end{itemize}
+
+So the idea is~: we define in Coq the sum, products, unit\ldots of types.
+Then for each type $T$ we generate another isomorphic type $rep_T$, expressed
+in terms of sum of products of standard Coq types. $T$ can appear inside,
+but only with the condition that when appears in structurally smaller position
+(without this condition, we could set $rep_T = T$, which wouldn't give us
+any information). We also generate $f_T : T \rightarrow rep_T$, $g_T : rep_T\rightarrow T$
+and proofs of $f . g = id_{rep_T}$ and $g . f = id_T$.
+
+Then the user write a generator using the same API as what was described in the
+first approach, but instead of using the specific terms, we can write standard
+Coq terms, since now sums and everything are defined in Coq, replacing
+\texttt{abstract\_type} by $f_T$. The simplification step isn't even necessary
+anymore since $g_T$ is exposed to the user.
+
+Which raises the question~: why not have do so since the beginning. Well there
+is one thing that becomes much more complicated. In the first approach, when it
+worked, there was no trace of conversion to another representation of the type
+in the generated term, since it would have been simplified. While this is not
+an issue for terms of proof, it adds complexity to the generated functions and
+makes it more difficult for the user to make its own proof about them.
+
+If the user uses the conversion function as an argument of its program $\phi$,
+we get something of the form~:
+\[\phi\ \left(\begin{array}{l}
+    \mathtt{match}\ x\ \mathtt{with}\\
+    | C_1 \ldots \Rightarrow t_1 \\
+    \vdots \\
+    | C_i \ldots \Rightarrow t_i \\
+\end{array}\right)\]
+
+This can't be simplified. If we look at how \texttt{abstract\_type} worked,
+it gave us something of the form~:
+\[\begin{array}{l}
+    \mathtt{match}\ x\ \mathtt{with}\\
+    | C_1 \ldots \Rightarrow \phi\ t_1 \\
+    \vdots \\
+    | C_i \ldots \Rightarrow \phi\ t_i \\
+\end{array}\]
+
+We can now simplify because $t_i$ is the representation of an instance in terms
+of sums of products, and $\phi$ can now be applied. This means that to get a
+simplification equivalent to the first approach, it would be necessary to add
+this rewriting rule to raise the matches above the functions, and a proof that
+it does not change the function. Due to lack of time this part has not been
+implemented.
+
+\section{Conclusion}
+
+ELPI has shown to be a powerful way to write Coq plugins, but a complicated
+one. Generating proof terms is a complicated task, albeit useful, and raised
+the need for a higher-level API for our mechanism. Despite some troubles,
+we found an API which seems promising, and further work on this direction
+could prove useful. As for now the software will be made available as an Opam
+package to see if there is interest from the community.
+
+A few remarks though~: even if the last approach were to prove as good as it seems,
+it would still require to write the proof terms by hand, which is tedious to
+say the least. A better way to write proof is necessary, but maybe the solution
+comes from improving ELPI Coq API.
+
+% References
+\newpage
+\addcontentsline{toc}{section}{References}
+\bibliography{sources}
+\bibliographystyle{plain}
+
+\end{document}
+
